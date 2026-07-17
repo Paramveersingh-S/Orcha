@@ -52,6 +52,10 @@ class ModelRouter:
             "code_generation": [
                 {"provider": "openrouter", "model": "qwen/qwen-2.5-coder-32b-instruct:free"},
                 {"provider": "groq", "model": "llama-3.3-70b-versatile"}
+            ],
+            "critic": [
+                {"provider": "openrouter", "model": "qwen/qwen-2.5-coder-32b-instruct:free"},
+                {"provider": "gemini", "model": "gemini-2.0-flash"}
             ]
         }
         return chains.get(task_type, chains["reasoning_heavy"])
