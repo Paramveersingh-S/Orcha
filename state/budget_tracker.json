@@ -1,0 +1,22 @@
+{
+    "groq": {
+        "requests_used": 1,
+        "requests_limit": 14000,
+        "reset_at": "2026-07-17T14:56:44.537613+00:00"
+    },
+    "openrouter": {
+        "requests_used": 0,
+        "requests_limit": 200,
+        "reset_at": "2026-07-17T14:56:44.556098+00:00"
+    },
+    "gemini": {
+        "requests_used": 0,
+        "requests_limit": 1500,
+        "reset_at": "2026-07-17T14:56:44.556106+00:00"
+    },
+    "cerebras": {
+        "requests_used": 0,
+        "requests_limit": 14000,
+        "reset_at": "2026-07-17T14:56:44.556112+00:00"
+    }
+}
