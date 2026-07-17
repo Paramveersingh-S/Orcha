@@ -98,7 +98,73 @@ class Orchestrator:
             self.state_manager.save()
             
         elif state.phase == "validation":
-            print("Validation phase is not yet implemented.")
+            print("Running Phase 3: Deep Validation (Competitor Intel)")
+            from agents.competitor_intel import CompetitorIntelAgent
+            
+            # Assume human picked the top scoring opportunity (we just pick the first for now)
+            # In a real scenario, the human checkpoint handler would set this.
+            if not state.opportunities:
+                print("No opportunities to validate.")
+                return
+                
+            active_opp = state.opportunities[0]
+            
+            intel_agent = CompetitorIntelAgent()
+            msg = intel_agent.reply({"opportunity": active_opp})
+            
+            if "error" in msg.content:
+                print(f"Error in validation: {msg.content['error']}")
+                return
+                
+            competitor_data = msg.content
+            print(f"Found {len(competitor_data.get('competitors', []))} competitors.")
+            
+            # Save to active venture state
+            state.active_venture.business_model["competitor_intel"] = competitor_data
+            
+            self.state_manager.update_phase("business_model")
+            self.state_manager.log_decision("validation", "Competitor intel gathered.", "agent")
+            self.state_manager.save()
+            self.run()
+            
+        elif state.phase == "business_model":
+            print("Running Phase 4: Business Model & Unit Economics")
+            from agents.business_model import BusinessModelAgent
+            from agents.financial_modeling import FinancialModelingAgent
+            
+            active_opp = state.opportunities[0]
+            intel = state.active_venture.business_model.get("competitor_intel", {})
+            
+            # 1. Business Model
+            bm_agent = BusinessModelAgent()
+            bm_msg = bm_agent.reply({
+                "opportunity": active_opp,
+                "competitor_intel": intel
+            })
+            
+            if "error" in bm_msg.content:
+                print(f"Error in business model: {bm_msg.content['error']}")
+                return
+                
+            state.active_venture.business_model["canvas"] = bm_msg.content
+            print("Business model generated.")
+            
+            # 2. Financial Modeling
+            fm_agent = FinancialModelingAgent()
+            fm_msg = fm_agent.reply({"business_model": bm_msg.content})
+            
+            if "error" in fm_msg.content:
+                print(f"Error in financial modeling: {fm_msg.content['error']}")
+                return
+                
+            state.active_venture.unit_economics = fm_msg.content
+            print("Unit economics calculated.")
+            
+            self.state_manager.update_phase("mvp_spec")
+            self.state_manager.log_decision("business_model", "Business and financial models created.", "agent")
+            self.state_manager.save()
+            self.run()
+            
         else:
             print(f"Phase {state.phase} is not yet implemented in orchestrator.")
 
