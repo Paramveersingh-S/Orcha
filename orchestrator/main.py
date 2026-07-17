@@ -1,0 +1,108 @@
+import agentscope
+from state.venture_state_manager import VentureStateManager
+from agents.market_research import MarketResearchAgent
+from agents.opportunity_scoring import OpportunityScoringAgent
+from agents.critic import CriticAgent
+import json
+import time
+
+class Orchestrator:
+    def __init__(self):
+        self.state_manager = VentureStateManager()
+        
+    def run(self):
+        state = self.state_manager.state
+        
+        # Check human checkpoints
+        if state.human_checkpoints_pending:
+            print(f"Orchestrator paused. Waiting on human checkpoints: {state.human_checkpoints_pending}")
+            return
+            
+        print(f"--- Starting Orchestrator Loop (Current Phase: {state.phase}) ---")
+        
+        if state.phase == "bootstrap":
+            print("Bootstrapping complete. Moving to discovery.")
+            self.state_manager.update_phase("discovery")
+            self.state_manager.log_decision("bootstrap", "Moved to discovery automatically", "agent")
+            self.run()
+            
+        elif state.phase == "discovery":
+            print("Running Phase 1: Discovery")
+            research_agent = MarketResearchAgent()
+            
+            # TODO: Add seed area dynamically via CLI or input, hardcoded for now
+            msg = research_agent.reply({"seed_area": "software development tools", "target_count": 3})
+            
+            if "error" in msg.content:
+                print(f"Error in discovery: {msg.content['error']}")
+                return
+                
+            opportunities = msg.content.get("opportunities", [])
+            print(f"Found {len(opportunities)} opportunities. Updating state.")
+            
+            self.state_manager.state.opportunities = opportunities
+            self.state_manager.update_phase("scoring")
+            self.state_manager.log_decision("discovery", f"Found {len(opportunities)} candidates", "agent")
+            self.state_manager.save()
+            self.run()
+            
+        elif state.phase == "scoring":
+            print("Running Phase 2: Opportunity Scoring & Shortlisting")
+            scoring_agent = OpportunityScoringAgent()
+            critic_agent = CriticAgent()
+            
+            candidates = self.state_manager.state.opportunities
+            
+            if not candidates:
+                print("No candidates to score. Reverting to discovery.")
+                self.state_manager.update_phase("discovery")
+                return
+                
+            msg = scoring_agent.reply({"candidates": candidates})
+            if "error" in msg.content:
+                print(f"Error in scoring: {msg.content['error']}")
+                return
+                
+            scores = msg.content.get("scores", [])
+            
+            print("Running Critic on scored output...")
+            critic_msg = critic_agent.reply({
+                "context": "Reviewing candidate opportunity scores for validity.",
+                "agent_output": json.dumps(scores, indent=2)
+            })
+            
+            # Simplified check: if blocking flags exist, halt.
+            flags = critic_msg.content.get("flags", [])
+            blocking_flags = [f for f in flags if f.get("type") == "blocking"]
+            
+            if blocking_flags:
+                print(f"Critic blocked scoring output! {len(blocking_flags)} blocking flags found.")
+                for flag in blocking_flags:
+                    print(f"- {flag.get('issue')}: {flag.get('reason')}")
+                # Log and pause
+                self.state_manager.log_decision("scoring", "Critic blocked output", "agent")
+                return
+                
+            print("Critic approved scoring. Saving scores and requesting human checkpoint.")
+            
+            # Apply scores to state
+            for score_entry in scores:
+                for opp in self.state_manager.state.opportunities:
+                    if opp['id'] == score_entry.get('id'):
+                        opp['score'] = score_entry.get('scores', {})
+                        break
+                        
+            # Enforce checkpoint
+            self.state_manager.add_human_checkpoint("shortlist_approval")
+            self.state_manager.log_decision("scoring", "Scoring complete, waiting on human approval for deep validation", "agent")
+            self.state_manager.save()
+            
+        elif state.phase == "validation":
+            print("Validation phase is not yet implemented.")
+        else:
+            print(f"Phase {state.phase} is not yet implemented in orchestrator.")
+
+if __name__ == "__main__":
+    agentscope.init()
+    orch = Orchestrator()
+    orch.run()
