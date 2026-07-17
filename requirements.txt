@@ -6,7 +6,7 @@ requests==2.32.3
 beautifulsoup4==4.12.3
 
 # Agent framework
-agentscope==0.1.2
+agentscope>=0.1.3
 
 # Database / Vector store
 supabase==2.7.2
