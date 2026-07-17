@@ -51,7 +51,7 @@ class Orchestrator:
             scoring_agent = OpportunityScoringAgent()
             critic_agent = CriticAgent()
             
-            candidates = self.state_manager.state.opportunities
+            candidates = [c.model_dump() if hasattr(c, 'model_dump') else c for c in self.state_manager.state.opportunities]
             
             if not candidates:
                 print("No candidates to score. Reverting to discovery.")
@@ -108,6 +108,7 @@ class Orchestrator:
                 return
                 
             active_opp = state.opportunities[0]
+            active_opp = active_opp.model_dump() if hasattr(active_opp, 'model_dump') else active_opp
             
             intel_agent = CompetitorIntelAgent()
             msg = intel_agent.reply({"opportunity": active_opp})
@@ -133,6 +134,7 @@ class Orchestrator:
             from agents.financial_modeling import FinancialModelingAgent
             
             active_opp = state.opportunities[0]
+            active_opp = active_opp.model_dump() if hasattr(active_opp, 'model_dump') else active_opp
             intel = state.active_venture.business_model.get("competitor_intel", {})
             
             # 1. Business Model
