@@ -165,6 +165,81 @@ class Orchestrator:
             self.state_manager.save()
             self.run()
             
+        elif state.phase == "mvp_spec":
+            print("Running Phase 5: MVP / Product Spec")
+            from agents.mvp_spec import MVPSpecAgent
+            
+            bm_agent_output = state.active_venture.business_model.get("canvas", {})
+            spec_agent = MVPSpecAgent()
+            msg = spec_agent.reply({"business_model": bm_agent_output})
+            
+            if "error" in msg.content:
+                print(f"Error in MVP spec: {msg.content['error']}")
+                return
+                
+            state.active_venture.mvp_spec = msg.content
+            print("MVP spec generated.")
+            
+            self.state_manager.add_human_checkpoint("mvp_scope_approval")
+            self.state_manager.update_phase("build")
+            self.state_manager.log_decision("mvp_spec", "MVP scoped, waiting for human approval.", "agent")
+            self.state_manager.save()
+            
+        elif state.phase == "build":
+            print("Running Phase 6: Build Handoff")
+            from agents.builder import BuilderAgent
+            from agents.legal_compliance import LegalComplianceAgent
+            
+            # Legal Check before build
+            legal_agent = LegalComplianceAgent()
+            legal_msg = legal_agent.reply({"business_model": state.active_venture.business_model.get("canvas", {})})
+            
+            if "error" not in legal_msg.content:
+                flags = legal_msg.content.get("risk_flags", [])
+                if flags:
+                    print("Legal risks flagged. Please review manually.")
+                    for f in flags:
+                        print(f"- [{f.get('severity')}] {f.get('risk')}")
+            
+            builder_agent = BuilderAgent()
+            msg = builder_agent.reply({
+                "venture_id": state.venture_id,
+                "mvp_spec": state.active_venture.mvp_spec
+            })
+            
+            if "error" in msg.content:
+                print(f"Error in Builder: {msg.content['error']}")
+                return
+                
+            state.active_venture.build_status = msg.content
+            
+            self.state_manager.add_human_checkpoint("public_deployment_approval")
+            self.state_manager.update_phase("gtm")
+            self.state_manager.log_decision("build", "Handoff prompt created, ready for deployment.", "agent")
+            self.state_manager.save()
+            
+        elif state.phase == "gtm":
+            print("Running Phase 7: Go-To-Market")
+            from agents.growth_gtm import GrowthGTMAgent
+            
+            gtm_agent = GrowthGTMAgent()
+            msg = gtm_agent.reply({"mvp_spec": state.active_venture.mvp_spec})
+            
+            if "error" in msg.content:
+                print(f"Error in GTM: {msg.content['error']}")
+                return
+                
+            state.active_venture.gtm_plan = msg.content
+            print("Launch plan created.")
+            
+            self.state_manager.add_human_checkpoint("public_post_approval")
+            self.state_manager.update_phase("metrics")
+            self.state_manager.log_decision("gtm", "Launch plan created.", "agent")
+            self.state_manager.save()
+            
+        elif state.phase == "metrics":
+            print("Phase 8: Metrics loop is ongoing. Factory pipeline complete.")
+            
         else:
             print(f"Phase {state.phase} is not yet implemented in orchestrator.")
 
