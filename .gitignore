@@ -48,3 +48,6 @@ venv.bak/
 state/venture_state.json
 state/*.db
 state/*.sqlite3
+
+# Specs
+*.md
