@@ -1,0 +1,14 @@
+# Python core dependencies
+python-dotenv==1.0.1
+pydantic==2.8.2
+pyyaml==6.0.1
+requests==2.32.3
+
+# Agent framework
+agentscope==0.1.2
+
+# Database / Vector store
+supabase==2.7.2
+
+# Utilities
+rich==13.7.1
