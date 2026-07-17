@@ -36,26 +36,23 @@ class ModelRouter:
         # Hardcoded task types based on spec 6.2
         chains = {
             "high_volume": [
-                {"provider": "groq", "model": "llama-3.1-8b-instant"},
-                {"provider": "openrouter", "model": "google/gemini-2.0-flash-lite-preview-02-05:free"},
-                {"provider": "gemini", "model": "gemini-2.0-flash-lite-preview-02-05"}
+                {"provider": "groq", "model": "llama-3.3-70b-versatile"},
+                {"provider": "gemini", "model": "gemini-2.0-flash"}
             ],
             "reasoning_heavy": [
-                {"provider": "openrouter", "model": "deepseek/deepseek-r1-distill-llama-70b:free"},
                 {"provider": "groq", "model": "llama-3.3-70b-versatile"},
                 {"provider": "gemini", "model": "gemini-2.0-flash"}
             ],
             "long_context": [
-                {"provider": "gemini", "model": "gemini-2.0-flash"},
-                {"provider": "openrouter", "model": "google/gemini-2.0-flash-lite-preview-02-05:free"}
+                {"provider": "gemini", "model": "gemini-2.0-flash"}
             ],
             "code_generation": [
-                {"provider": "openrouter", "model": "qwen/qwen-2.5-coder-32b-instruct:free"},
-                {"provider": "groq", "model": "llama-3.3-70b-versatile"}
+                {"provider": "groq", "model": "llama-3.3-70b-versatile"},
+                {"provider": "gemini", "model": "gemini-2.0-flash"}
             ],
             "critic": [
-                {"provider": "openrouter", "model": "qwen/qwen-2.5-coder-32b-instruct:free"},
-                {"provider": "gemini", "model": "gemini-2.0-flash"}
+                {"provider": "gemini", "model": "gemini-2.0-flash"},
+                {"provider": "groq", "model": "llama-3.3-70b-versatile"}
             ]
         }
         return chains.get(task_type, chains["reasoning_heavy"])
