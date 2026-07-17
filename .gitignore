@@ -50,4 +50,4 @@ state/*.db
 state/*.sqlite3
 
 # Specs
-*.md
+autonomous-venture-factory-spec.md
